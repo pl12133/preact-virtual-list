@@ -9,7 +9,7 @@
   ],
   "settings": {
     "react": {
-      "pragma": "h"
+      "pragma": "createElement"
     }
   },
   "parserOptions": {
