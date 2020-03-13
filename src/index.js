@@ -25,9 +25,13 @@ export default class VirtualList extends Component {
 		}
 	};
 
-	handleScroll = () => {
+	handleScroll = (e) => {
 		this.setState({ offset: this.base.scrollTop });
 		if (this.props.sync) this.forceUpdate();
+
+		if (this.props.onScroll) {
+			this.props.onScroll(e);
+		}
 	};
 
 	componentDidUpdate() {
@@ -64,7 +68,7 @@ export default class VirtualList extends Component {
 		let selection = data.slice(start, end);
 
 		return (
-			<div onScroll={this.handleScroll} {...props}>
+			<div {...props} onScroll={this.handleScroll}>
 				<div style={`${STYLE_INNER} height:${data.length*rowHeight}px;`}>
 					<div style={`${STYLE_CONTENT} top:${start*rowHeight}px;`}>
 						{ selection.map(renderRow) }
