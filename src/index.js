@@ -26,7 +26,20 @@ export default class VirtualList extends Component {
 	};
 
 	handleScroll = (e) => {
-		this.setState({ offset: this.base.scrollTop });
+		const { start: prevStart } = this.visibleRowRange;
+		const focusedIndex = Array.from(this.base.firstChild.firstChild.childNodes).indexOf(document.activeElement);
+
+		this.setState({ offset: this.base.scrollTop }, () => {
+			const { start: nextStart } = this.visibleRowRange;
+			if (prevStart !== nextStart) {
+				const startDelta = prevStart < nextStart
+					? focusedIndex - (nextStart - prevStart)
+					: focusedIndex + (prevStart - nextStart);
+				const refocus = Array.from(this.base.firstChild.firstChild.childNodes)[startDelta];
+				console.log('trying to refocus', { prevStart, nextStart, focusedIndex, startDelta });
+				if (refocus) { refocus.focus(); }
+			}
+		});
 		if (this.props.sync) this.forceUpdate();
 
 		if (this.props.onScroll) {
@@ -34,20 +47,10 @@ export default class VirtualList extends Component {
 		}
 	};
 
-	componentDidUpdate() {
-		this.resize();
-	}
+	get visibleRowRange() {
+		const { overscanCount = 10, rowHeight } = this.props;
+		const { offset = 0, height = 0 } = this.state;
 
-	componentDidMount() {
-		this.resize();
-		addEventListener('resize', this.resize);
-	}
-
-	componentWillUnmount() {
-		removeEventListener('resize', this.resize);
-	}
-
-	render({ data, rowHeight, renderRow, overscanCount=10, sync, ...props }, { offset=0, height=0 }) {
 		// first visible row index
 		let start = (offset / rowHeight)|0;
 
@@ -64,14 +67,33 @@ export default class VirtualList extends Component {
 		// last visible + overscan row index
 		let end = start + 1 + visibleRowCount;
 
+		return { start, end };
+	}
+
+	componentDidUpdate() {
+		this.resize();
+	}
+
+	componentDidMount() {
+		this.resize();
+		addEventListener('resize', this.resize);
+	}
+
+	componentWillUnmount() {
+		removeEventListener('resize', this.resize);
+	}
+
+	render({ data, rowHeight, renderRow, overscanCount=10, sync, ...props }, { offset=0, height=0 }) {
+		const { start, end } = this.visibleRowRange;
+
 		// data slice currently in viewport plus overscan items
-		let selection = data.slice(start, end);
+		const selection = data.slice(start, end);
 
 		return (
 			<div {...props} onScroll={this.handleScroll}>
 				<div style={`${STYLE_INNER} height:${data.length*rowHeight}px;`}>
 					<div style={`${STYLE_CONTENT} top:${start*rowHeight}px;`}>
-						{ selection.map(renderRow) }
+						{ selection.map((row, index) => renderRow(row, start + index, data)) }
 					</div>
 				</div>
 			</div>
